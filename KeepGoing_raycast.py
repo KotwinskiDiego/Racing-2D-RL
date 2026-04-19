@@ -251,212 +251,206 @@ class Map:
         self.batch.draw()
 
 
-# --- INICJALIZACJA OKNA ---
-window = pyglet.window.Window(WIDTH, HEIGHT, "WRUM - Time Trial", resizable=False)
-keys = pyglet.window.key.KeyStateHandler()
-window.push_handlers(keys)
+# --- INICJALIZACJA GRY TYLKO PRZY BEZPOŚREDNIM URUCHOMIENIU ---
+if __name__ == "__main__":
 
-player_car = None
-game_map = None
-available_maps = []
-selected_map_index = 0
-
-
-def refresh_map_list():
-    global available_maps
-    if not os.path.exists(MAP_FOLDER):
-        os.makedirs(MAP_FOLDER)
-    files = os.listdir(MAP_FOLDER)
-    available_maps = [f for f in files if f.endswith('.txt')]
-    if not available_maps:
-        available_maps = ["Brak map!"]
-
-
-refresh_map_list()
-
-
-# --- RESET STANU ---
-def reset_game_state():
-    global window, keys
-    window.view = pyglet.math.Mat4()
-    # Bezpieczne czyszczenie klawiszy
-    window.remove_handlers(keys)
+    # 1. Tworzymy okno i klawisze
+    window = pyglet.window.Window(WIDTH, HEIGHT, "WRUM - Time Trial", resizable=False)
     keys = pyglet.window.key.KeyStateHandler()
     window.push_handlers(keys)
 
-
-def start_game(map_filename):
-    global game_map, player_car, current_state, current_time, current_map_name, is_new_record
-
-    reset_game_state()
-
-    try:
-        game_map = Map(map_filename)
-        current_map_name = map_filename
-        is_new_record = False
-
-        if not game_map.r_positions:
-            print("Błąd: Brak 'r' na mapie!")
-            return
-
-        rx, ry = game_map.r_positions[0]
-        start_x = rx + GRID_SIZE // 2
-        start_y = ry + GRID_SIZE // 2
-
-        player_car = Car(start_x, start_y)
-
-        current_time = 0.0
-        current_state = STATE_GAME
-
-    except Exception as e:
-        print(f"Błąd ładowania mapy: {e}")
+    player_car = None
+    game_map = None
+    available_maps = []
+    selected_map_index = 0
 
 
-# --- PĘTLA GŁÓWNA ---
-def update(dt):
-    global current_state, current_time, final_time, is_new_record
+    def refresh_map_list():
+        global available_maps
+        if not os.path.exists(MAP_FOLDER):
+            os.makedirs(MAP_FOLDER)
+        files = os.listdir(MAP_FOLDER)
+        available_maps = [f for f in files if f.endswith('.txt')]
+        if not available_maps:
+            available_maps = ["Brak map!"]
 
-    if current_state == STATE_MENU:
-        pass
 
-    elif current_state == STATE_GAME:
-        if player_car.is_falling:
-            if game_map and game_map.r_positions:
-                rx, ry = game_map.r_positions[0]
-                player_car.x = rx + GRID_SIZE // 2
-                player_car.y = ry + GRID_SIZE // 2
-                player_car.velocity_x = 0
-                player_car.velocity_y = 0
-                player_car.angle = 0
-                player_car.is_falling = False
-                current_time = 0.0
-        else:
-            current_time += dt
+    refresh_map_list()
 
-            grip = game_map.get_grip(player_car.x, player_car.y)
 
-            if grip is None or grip == 0:
-                player_car.is_falling = True
-            elif grip == 2.0:
-                final_time = current_time
-                old_record = highscores.get(current_map_name)
+    # --- RESET STANU ---
+    def reset_game_state():
+        global window, keys
+        window.view = pyglet.math.Mat4()
+        window.remove_handlers(keys)
+        keys = pyglet.window.key.KeyStateHandler()
+        window.push_handlers(keys)
 
-                if old_record is None or final_time < old_record:
-                    highscores[current_map_name] = final_time
-                    save_highscores()
-                    is_new_record = True
-                else:
-                    is_new_record = False
 
-                current_state = STATE_WIN
+    def start_game(map_filename):
+        global game_map, player_car, current_state, current_time, current_map_name, is_new_record
+
+        reset_game_state()
+
+        try:
+            game_map = Map(map_filename)
+            current_map_name = map_filename
+            is_new_record = False
+
+            if not game_map.r_positions:
+                print("Błąd: Brak 'r' na mapie!")
+                return
+
+            rx, ry = game_map.r_positions[0]
+            start_x = rx + GRID_SIZE // 2
+            start_y = ry + GRID_SIZE // 2
+
+            player_car = Car(start_x, start_y)
+
+            current_time = 0.0
+            current_state = STATE_GAME
+
+        except Exception as e:
+            print(f"Błąd ładowania mapy: {e}")
+
+
+    # --- PĘTLA GŁÓWNA ---
+    def update(dt):
+        global current_state, current_time, final_time, is_new_record
+
+        if current_state == STATE_MENU:
+            pass
+
+        elif current_state == STATE_GAME:
+            if player_car.is_falling:
+                if game_map and game_map.r_positions:
+                    rx, ry = game_map.r_positions[0]
+                    player_car.x = rx + GRID_SIZE // 2
+                    player_car.y = ry + GRID_SIZE // 2
+                    player_car.velocity_x = 0
+                    player_car.velocity_y = 0
+                    player_car.angle = 0
+                    player_car.is_falling = False
+                    current_time = 0.0
             else:
-                phys_grip = 1.0 if grip >= 2.0 else grip
+                current_time += dt
 
-                # ZMIANA: Zamiana wciśniętych klawiszy na flagi (True/False)
-                is_left = keys[pyglet.window.key.A]
-                is_right = keys[pyglet.window.key.D]
-                is_forward = keys[pyglet.window.key.W]
-                is_backward = keys[pyglet.window.key.S]
+                grip = game_map.get_grip(player_car.x, player_car.y)
 
-                # Przekazanie flag do zmodyfikowanej metody move
-                player_car.move(dt, phys_grip, left=is_left, right=is_right, forward=is_forward, backward=is_backward)
+                if grip is None or grip == 0:
+                    player_car.is_falling = True
+                elif grip == 2.0:
+                    final_time = current_time
+                    old_record = highscores.get(current_map_name)
 
-                player_car.update_raycast(game_map)
-    elif current_state == STATE_WIN:
-        pass
+                    if old_record is None or final_time < old_record:
+                        highscores[current_map_name] = final_time
+                        save_highscores()
+                        is_new_record = True
+                    else:
+                        is_new_record = False
+
+                    current_state = STATE_WIN
+                else:
+                    phys_grip = 1.0 if grip >= 2.0 else grip
+
+                    is_left = keys[pyglet.window.key.A]
+                    is_right = keys[pyglet.window.key.D]
+                    is_forward = keys[pyglet.window.key.W]
+                    is_backward = keys[pyglet.window.key.S]
+
+                    player_car.move(dt, phys_grip, left=is_left, right=is_right, forward=is_forward,
+                                    backward=is_backward)
+                    player_car.update_raycast(game_map)
+        elif current_state == STATE_WIN:
+            pass
 
 
-pyglet.clock.schedule_interval(update, 1 / 60)
+    pyglet.clock.schedule_interval(update, 1 / 60)
 
 
-# --- RYSOWANIE ---
-@window.event
-def on_draw():
-    window.clear()
+    # --- RYSOWANIE ---
+    @window.event
+    def on_draw():
+        window.clear()
 
-    # 1. Rysowanie interfejsu (na płasko)
-    window.view = pyglet.math.Mat4()
+        window.view = pyglet.math.Mat4()
 
-    if current_state == STATE_MENU:
-        pyglet.text.Label("WRUM - WYBIERZ TRASĘ", font_size=40, x=WIDTH // 2, y=HEIGHT - 100, anchor_x='center').draw()
-        pyglet.text.Label("Strzałki: Wybór | ENTER: Start | ESC: Wyjście", font_size=16, x=WIDTH // 2, y=50,
-                          anchor_x='center').draw()
-
-        for i, m_name in enumerate(available_maps):
-            record = highscores.get(m_name)
-            record_str = f"{record:.2f}s" if record else "--.--"
-            color = (0, 255, 0, 255) if i == selected_map_index else (255, 255, 255, 255)
-            text = f"> {m_name} <   Rekord: {record_str}" if i == selected_map_index else f"{m_name}   Rekord: {record_str}"
-
-            pyglet.text.Label(text, font_size=24, color=color, x=WIDTH // 2, y=HEIGHT - 200 - (i * 45),
+        if current_state == STATE_MENU:
+            pyglet.text.Label("WRUM - WYBIERZ TRASĘ", font_size=40, x=WIDTH // 2, y=HEIGHT - 100,
+                              anchor_x='center').draw()
+            pyglet.text.Label("Strzałki: Wybór | ENTER: Start | ESC: Wyjście", font_size=16, x=WIDTH // 2, y=50,
                               anchor_x='center').draw()
 
-    elif current_state == STATE_GAME:
-        # 2. Rysowanie świata (Kamera śledzi auto)
-        cam_x = -player_car.x + WIDTH // 2
-        cam_y = -player_car.y + HEIGHT // 2
-        window.view = pyglet.math.Mat4().translate((cam_x, cam_y, 0))
+            for i, m_name in enumerate(available_maps):
+                record = highscores.get(m_name)
+                record_str = f"{record:.2f}s" if record else "--.--"
+                color = (0, 255, 0, 255) if i == selected_map_index else (255, 255, 255, 255)
+                text = f"> {m_name} <   Rekord: {record_str}" if i == selected_map_index else f"{m_name}   Rekord: {record_str}"
 
-        game_map.draw()
-        player_car.draw()
+                pyglet.text.Label(text, font_size=24, color=color, x=WIDTH // 2, y=HEIGHT - 200 - (i * 45),
+                                  anchor_x='center').draw()
 
-        # 3. Rysowanie HUD (Licznik)
-        window.view = pyglet.math.Mat4()
-        pyglet.text.Label(f"Czas: {current_time:.2f}", font_size=24, x=20, y=HEIGHT - 40,
-                          color=(255, 255, 0, 255)).draw()
+        elif current_state == STATE_GAME:
+            cam_x = -player_car.x + WIDTH // 2
+            cam_y = -player_car.y + HEIGHT // 2
+            window.view = pyglet.math.Mat4().translate((cam_x, cam_y, 0))
 
-    elif current_state == STATE_WIN:
-        # Kamera zostaje na aucie
-        cam_x = -player_car.x + WIDTH // 2
-        cam_y = -player_car.y + HEIGHT // 2
-        window.view = pyglet.math.Mat4().translate((cam_x, cam_y, 0))
+            game_map.draw()
+            player_car.draw()
 
-        game_map.draw()
-        player_car.draw()
+            window.view = pyglet.math.Mat4()
+            pyglet.text.Label(f"Czas: {current_time:.2f}", font_size=24, x=20, y=HEIGHT - 40,
+                              color=(255, 255, 0, 255)).draw()
 
-        # Overlay i napisy na płasko
-        window.view = pyglet.math.Mat4()
-        pyglet.shapes.Rectangle(0, 0, WIDTH, HEIGHT, color=(0, 0, 0), batch=None).opacity = 200
+        elif current_state == STATE_WIN:
+            cam_x = -player_car.x + WIDTH // 2
+            cam_y = -player_car.y + HEIGHT // 2
+            window.view = pyglet.math.Mat4().translate((cam_x, cam_y, 0))
 
-        header = "NOWY REKORD!" if is_new_record else "UKOŃCZONE!"
-        h_color = (255, 215, 0, 255) if is_new_record else (255, 0, 0, 255)
+            game_map.draw()
+            player_car.draw()
 
-        pyglet.text.Label(header, font_size=80, color=h_color, x=WIDTH // 2, y=HEIGHT // 2 + 80,
-                          anchor_x='center').draw()
-        pyglet.text.Label(f"Twój czas: {final_time:.2f} s", font_size=50, color=(0, 255, 0, 255), x=WIDTH // 2,
-                          y=HEIGHT // 2 - 20, anchor_x='center').draw()
-        pyglet.text.Label("Enter - Menu", font_size=30, x=WIDTH // 2, y=HEIGHT // 2 - 150, anchor_x='center').draw()
+            window.view = pyglet.math.Mat4()
+            pyglet.shapes.Rectangle(0, 0, WIDTH, HEIGHT, color=(0, 0, 0), batch=None).opacity = 200
 
+            header = "NOWY REKORD!" if is_new_record else "UKOŃCZONE!"
+            h_color = (255, 215, 0, 255) if is_new_record else (255, 0, 0, 255)
 
-# --- STEROWANIE ---
-@window.event
-def on_key_press(symbol, modifiers):
-    global current_state, selected_map_index
-
-    if current_state == STATE_MENU:
-        if symbol == pyglet.window.key.UP or symbol == pyglet.window.key.W:
-            selected_map_index = (selected_map_index - 1) % len(available_maps)
-        elif symbol == pyglet.window.key.DOWN or symbol == pyglet.window.key.S:
-            selected_map_index = (selected_map_index + 1) % len(available_maps)
-        elif symbol == pyglet.window.key.ENTER or symbol == pyglet.window.key.SPACE:
-            if available_maps and available_maps[0] != "Brak map!":
-                start_game(available_maps[selected_map_index])
-        elif symbol == pyglet.window.key.ESCAPE:
-            window.close()
-
-    elif current_state == STATE_GAME:
-        if symbol == pyglet.window.key.ESCAPE:
-            current_state = STATE_MENU
-            refresh_map_list()
-            reset_game_state()
-            return pyglet.event.EVENT_HANDLED
-
-    elif current_state == STATE_WIN:
-        if symbol == pyglet.window.key.ENTER or symbol == pyglet.window.key.SPACE:
-            current_state = STATE_MENU
-            refresh_map_list()
-            reset_game_state()
+            pyglet.text.Label(header, font_size=80, color=h_color, x=WIDTH // 2, y=HEIGHT // 2 + 80,
+                              anchor_x='center').draw()
+            pyglet.text.Label(f"Twój czas: {final_time:.2f} s", font_size=50, color=(0, 255, 0, 255), x=WIDTH // 2,
+                              y=HEIGHT // 2 - 20, anchor_x='center').draw()
+            pyglet.text.Label("Enter - Menu", font_size=30, x=WIDTH // 2, y=HEIGHT // 2 - 150, anchor_x='center').draw()
 
 
-if __name__ == "__main__":
+    # --- STEROWANIE ---
+    @window.event
+    def on_key_press(symbol, modifiers):
+        global current_state, selected_map_index
+
+        if current_state == STATE_MENU:
+            if symbol == pyglet.window.key.UP or symbol == pyglet.window.key.W:
+                selected_map_index = (selected_map_index - 1) % len(available_maps)
+            elif symbol == pyglet.window.key.DOWN or symbol == pyglet.window.key.S:
+                selected_map_index = (selected_map_index + 1) % len(available_maps)
+            elif symbol == pyglet.window.key.ENTER or symbol == pyglet.window.key.SPACE:
+                if available_maps and available_maps[0] != "Brak map!":
+                    start_game(available_maps[selected_map_index])
+            elif symbol == pyglet.window.key.ESCAPE:
+                window.close()
+
+        elif current_state == STATE_GAME:
+            if symbol == pyglet.window.key.ESCAPE:
+                current_state = STATE_MENU
+                refresh_map_list()
+                reset_game_state()
+                return pyglet.event.EVENT_HANDLED
+
+        elif current_state == STATE_WIN:
+            if symbol == pyglet.window.key.ENTER or symbol == pyglet.window.key.SPACE:
+                current_state = STATE_MENU
+                refresh_map_list()
+                reset_game_state()
+
     pyglet.app.run()

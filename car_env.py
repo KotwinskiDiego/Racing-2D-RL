@@ -1,8 +1,13 @@
-from KeepGoing_raycast import Map,Car
+from KeepGoing_raycast import Map, Car
+import gymnasium as gym
+import numpy as np
 import math
-import random
+
+
 MAP_FOLDER = "Mapy"
-class CarEnv:
+
+
+class CarEnv(gym.Env):
     def __init__(self, map_filename):
         self.map = Map(map_filename)
         self.grid_size = 100
@@ -11,59 +16,84 @@ class CarEnv:
         self.start_y = ry + self.grid_size // 2
         self.car = Car(self.start_x, self.start_y)
         self.current_step = 0
-        self.dt = 1/60
+        self.max_steps = 2000
+        self.dt = 1 / 60
+
+        self.action_space = gym.spaces.MultiDiscrete([3, 3])
+
+        # Mamy 9 wartości: 5x raycast, 1x grip, 1x vel_x, 1x vel_y, 1x angle
+        self.observation_space = gym.spaces.Box(
+            low=-1.0,
+            high=1.0,
+            shape=(9,),
+            dtype=np.float32
+        )
 
     def get_state(self):
-        #can be used only after update_raycast (and move in most cases)
-        return self.car.ray_lengths
+        # 1. Normalizacja czujników raycast (zasięg do 700) -> wynik od 0.0 do 1.0
+        norm_rays = [ray / self.car.raycast_max_range for ray in self.car.ray_lengths]
 
-    def reset(self):
+        raw_grip = self.map.get_grip(self.car.x, self.car.y)
+        if raw_grip is None: raw_grip = 0.0
+
+        norm_grip = 1.0 if raw_grip >= 1.0 else raw_grip
+
+
+        # 3. Normalizacja prędkości (od -1000 do 1000) -> wynik od -1.0 do 1.0
+        norm_vel_x = self.car.velocity_x / self.car.max_speed
+        norm_vel_y = self.car.velocity_y / self.car.max_speed
+
+        # 4. Normalizacja kąta obrócenia auta (od 0 do 2*PI) -> wynik od 0.0 do 1.0
+        norm_angle = (self.car.angle % (2 * math.pi)) / (2 * math.pi)
+
+        # Złożenie wszystkiego w jedną listę (5 + 1 + 1 + 1 + 1 = 9 elementów)
+        state = norm_rays + [norm_grip, norm_vel_x, norm_vel_y, norm_angle]
+        return state
+
+    def reset(self, seed=None, options=None):
         self.car.x = self.start_x
         self.car.y = self.start_y
         self.car.angle = 0
         self.car.velocity_x = 0
         self.car.velocity_y = 0
+        self.current_step = 0
         self.car.update_raycast(self.map)
-        self.get_state()
+
+        return np.array(self.get_state(), dtype=np.float32), {}
 
     def step(self, action):
+        self.current_step += 1
         dt = self.dt
         grip = self.map.get_grip(self.car.x, self.car.y)
-
+        if grip is None:
+            grip = 0.0
         steer_act = action[0]
         pedal_act = action[1]
 
-        #if 0 nothing is chosen
         is_l = (steer_act == 1)
         is_r = (steer_act == 2)
-
-        #if 0 nothing is chosen
         is_f = (pedal_act == 1)
         is_b = (pedal_act == 2)
 
-        self.car.move(dt,grip,is_l,is_r,is_f,is_b)
+        self.car.move(dt, grip, is_l, is_r, is_f, is_b)
         self.car.update_raycast(self.map)
 
+        new_grip = self.map.get_grip(self.car.x, self.car.y)
         done = False
-        reward = 0
-        if grip == 0:
+        truncated = False
+        reward = -0.5
+
+        info = {}
+        if new_grip == 0 or new_grip is None:
             done = True
             reward = -100
-        if grip == 2:
+        if new_grip == 2:
             done = True
             reward = 1000
-        return self.get_state(), reward, done
+            info["lap_time"] = self.current_step * self.dt
 
-env = CarEnv("tor1.txt")
+        if self.current_step >= self.max_steps:
+            truncated = True
+        return np.array(self.get_state(), dtype=np.float32), reward, done, truncated, info
 
-state = env.reset()
 
-while True:
-    # Na razie losowe akcje (0, 1 lub 2), żeby zobaczyć czy działa fizyka
-    action = [random.randint(0, 2) for _ in range(2)]
-
-    next_state, reward, done = env.step(action)
-    print(f"x: {env.car.x}, y: {env.car.y}")
-    if done:
-        state = env.reset()
-        print("=========================\nreset\n==============================")

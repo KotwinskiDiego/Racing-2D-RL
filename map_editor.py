@@ -208,21 +208,19 @@ def on_draw():
 
 @window.event
 def on_mouse_motion(x, y, dx, dy):
-    editor.mouse_grid_pos = (x // CELL_SIZE, y // CELL_SIZE)
-
+    editor.mouse_grid_pos = (int(x // CELL_SIZE), int(y // CELL_SIZE))
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
-    editor.mouse_grid_pos = (x // CELL_SIZE, y // CELL_SIZE)
+    editor.mouse_grid_pos = (int(x // CELL_SIZE), int(y // CELL_SIZE))
     if buttons & mouse.LEFT:
         gx, gy = editor.mouse_grid_pos
         editor.set_cell(gx, gy, editor.current_grip)
 
-
 @window.event
 def on_mouse_press(x, y, button, modifiers):
     if button == mouse.LEFT:
-        gx, gy = x // CELL_SIZE, y // CELL_SIZE
+        gx, gy = int(x // CELL_SIZE), int(y // CELL_SIZE)
         editor.set_cell(gx, gy, editor.current_grip)
 
 
