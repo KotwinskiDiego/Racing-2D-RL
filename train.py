@@ -26,11 +26,11 @@ nazwa_modelu = f"kierowca_{czas_startu}"
 # Wpisz tu ścieżkę do modelu, np. "./zapisani_kierowcy/kierowca_wczoraj.zip"
 # Jeśli chcesz zacząć od nowa, zostaw None
 # =====================================================================
-STARY_MODEL_PATH = "zapisani_kierowcy/checkpoints/kierowca_2026-04-19_15-27_400704_steps.zip"  # Zmień na ścieżkę, by kontynuować, np. "zapisani_kierowcy/kierowca_2026-04-19_14-30_final.zip"
+STARY_MODEL_PATH = "zapisani_kierowcy/checkpoints/kierowca_2026-04-19_20-18_4100704_steps.zip"  # Zmień na ścieżkę, by kontynuować, np. "zapisani_kierowcy/kierowca_2026-04-19_14-30_final.zip"
 
 print(f"Sesja treningowa: {nazwa_modelu}")
 
-env = CarEnv("tor2.txt")
+env = CarEnv("tor3.txt")
 
 checkpoint_callback = CheckpointCallback(
     save_freq=100000,
@@ -44,7 +44,8 @@ callback_list = CallbackList([checkpoint_callback, time_log_callback])
 # =====================================================================
 # ŁADOWANIE LUB TWORZENIE MODELU
 # =====================================================================
-nowe_parametry = {"ent_coef": 0.03}
+
+nowe_parametry = {"gamma":0.95,"ent_coef":0.01}
 if STARY_MODEL_PATH is not None and os.path.exists(STARY_MODEL_PATH):
     print(f"Wczytywanie istniejącego modelu z: {STARY_MODEL_PATH}...")
     # Ładujemy model i podpinamy go pod nowe środowisko i tensorboard

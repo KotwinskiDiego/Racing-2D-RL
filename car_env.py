@@ -81,16 +81,19 @@ class CarEnv(gym.Env):
         new_grip = self.map.get_grip(self.car.x, self.car.y)
         done = False
         truncated = False
-        reward = -0.5
+
         if is_f == False:
             reward = -2
+        else:
+            reward = 1
+
         info = {}
         if new_grip == 0 or new_grip is None:
             done = True
             reward = -100
         if new_grip == 2:
             done = True
-            reward = 1000
+            reward = 10000
             info["lap_time"] = self.current_step * self.dt
 
         if self.current_step >= self.max_steps:
