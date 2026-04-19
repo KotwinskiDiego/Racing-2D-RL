@@ -10,7 +10,7 @@ from stable_baselines3 import PPO
 WIDTH, HEIGHT = 800, 600
 window = pyglet.window.Window(WIDTH, HEIGHT, "Obserwacja AI - KeepGoing", resizable=False)
 
-map_filename = "tor2.txt"
+map_filename = "tor1.txt"
 game_map = Map(map_filename)
 
 grid_size = 100
