@@ -82,7 +82,8 @@ class CarEnv(gym.Env):
         done = False
         truncated = False
         reward = -0.5
-
+        if is_f == False:
+            reward = -2
         info = {}
         if new_grip == 0 or new_grip is None:
             done = True

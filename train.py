@@ -26,7 +26,7 @@ nazwa_modelu = f"kierowca_{czas_startu}"
 # Wpisz tu ścieżkę do modelu, np. "./zapisani_kierowcy/kierowca_wczoraj.zip"
 # Jeśli chcesz zacząć od nowa, zostaw None
 # =====================================================================
-STARY_MODEL_PATH = "zapisani_kierowcy/checkpoints/kierowca_2026-04-19_14-07_300704_steps.zip"  # Zmień na ścieżkę, by kontynuować, np. "zapisani_kierowcy/kierowca_2026-04-19_14-30_final.zip"
+STARY_MODEL_PATH = "moj_pierwszy_kierowca.zip"  # Zmień na ścieżkę, by kontynuować, np. "zapisani_kierowcy/kierowca_2026-04-19_14-30_final.zip"
 
 print(f"Sesja treningowa: {nazwa_modelu}")
 
@@ -59,8 +59,8 @@ print("Rozpoczynam jazdę...")
 model.learn(
     total_timesteps=1000000,
     callback=callback_list,
-    tb_log_name=nazwa_modelu,
-    reset_num_timesteps=False if STARY_MODEL_PATH else True
+    tb_log_name="PPO",
+    reset_num_timesteps=False
 )
 
 koncowa_sciezka = f"./zapisani_kierowcy/{nazwa_modelu}_final"
