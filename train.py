@@ -26,11 +26,11 @@ nazwa_modelu = f"kierowca_{czas_startu}"
 # Wpisz tu ścieżkę do modelu, np. "./zapisani_kierowcy/kierowca_wczoraj.zip"
 # Jeśli chcesz zacząć od nowa, zostaw None
 # =====================================================================
-STARY_MODEL_PATH = "moj_pierwszy_kierowca.zip"  # Zmień na ścieżkę, by kontynuować, np. "zapisani_kierowcy/kierowca_2026-04-19_14-30_final.zip"
+STARY_MODEL_PATH = "zapisani_kierowcy/checkpoints/kierowca_2026-04-19_15-27_400704_steps.zip"  # Zmień na ścieżkę, by kontynuować, np. "zapisani_kierowcy/kierowca_2026-04-19_14-30_final.zip"
 
 print(f"Sesja treningowa: {nazwa_modelu}")
 
-env = CarEnv("tor1.txt")
+env = CarEnv("tor2.txt")
 
 checkpoint_callback = CheckpointCallback(
     save_freq=100000,
@@ -44,13 +44,14 @@ callback_list = CallbackList([checkpoint_callback, time_log_callback])
 # =====================================================================
 # ŁADOWANIE LUB TWORZENIE MODELU
 # =====================================================================
+nowe_parametry = {"ent_coef": 0.03}
 if STARY_MODEL_PATH is not None and os.path.exists(STARY_MODEL_PATH):
     print(f"Wczytywanie istniejącego modelu z: {STARY_MODEL_PATH}...")
     # Ładujemy model i podpinamy go pod nowe środowisko i tensorboard
-    model = PPO.load(STARY_MODEL_PATH, env=env, tensorboard_log="./wyniki_treningu/", ent_coef=0.03)
+    model = PPO.load(STARY_MODEL_PATH, env=env, tensorboard_log="./wyniki_treningu/",custom_objects=nowe_parametry)
 else:
     print("Tworzenie zupełnie nowego agenta od zera...")
-    model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./wyniki_treningu/", ent_coef=0.03)
+    model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./wyniki_treningu/",custom_objects=nowe_parametry)
 
 # Odpalamy trening!
 # UWAGA: reset_num_timesteps=False sprawia, że jeśli stary model miał już 1 mln kroków,
@@ -59,8 +60,9 @@ print("Rozpoczynam jazdę...")
 model.learn(
     total_timesteps=1000000,
     callback=callback_list,
-    tb_log_name="PPO",
+    tb_log_name=nazwa_modelu,
     reset_num_timesteps=False
+
 )
 
 koncowa_sciezka = f"./zapisani_kierowcy/{nazwa_modelu}_final"

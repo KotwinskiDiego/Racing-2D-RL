@@ -9,7 +9,7 @@ WIDTH, HEIGHT = 800, 600
 window = pyglet.window.Window(WIDTH, HEIGHT, "Obserwacja AI - KeepGoing", resizable=False)
 
 
-map_filename = "tor_treningowy1.txt"
+map_filename = "tor3.txt"
 game_map = Map(map_filename)
 
 
@@ -23,7 +23,7 @@ car = Car(start_x, start_y)
 car.update_raycast(game_map)
 
 print("Ładowanie mózgu kierowcy...")
-model = PPO.load("zapisani_kierowcy/checkpoints/kierowca_2026-04-19_14-28_400704_steps.zip")
+model = PPO.load("zapisani_kierowcy/checkpoints/kierowca_2026-04-19_15-27_400704_steps.zip")
 print("Kierowca gotowy!")
 
 
