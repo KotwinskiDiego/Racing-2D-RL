@@ -399,5 +399,5 @@ def on_key_press(symbol, modifiers):
             refresh_map_list()
             reset_game_state()
 
-
-pyglet.app.run()
+if __name__ == "__main__":
+    pyglet.app.run()

@@ -11,7 +11,7 @@ WRUM is a physics-based, top-down racing game developed in Python using Pyglet. 
     ```
 3.  **Start Game:**
     ```bash
-    python WRUM.py
+    python ride&fall.py
     ```
 
 ---
